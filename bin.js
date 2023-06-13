@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const os = require('os')
 const pull = require('pull-stream')
 const human = require('human-size')
