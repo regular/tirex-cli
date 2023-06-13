@@ -13,6 +13,11 @@ function Extract (opts) {
   opts.path = path.resolve(path.normalize(opts.path));
   const filter = opts.filter || (()=>true)
 
+  function trim(p) {
+    if (!opts.trim) return p
+    return p.split(path.sep).slice(opts.trim).join(path.sep)
+  }
+
   const file_modes = {}
 
   var parser = new Parse(opts);
@@ -24,19 +29,21 @@ function Extract (opts) {
     // to avoid zip slip (writing outside of the destination), we resolve
     // the target path, and make sure it's nested in the intended
     // destination, or not extract it otherwise.
-    var extractPath = path.join(opts.path, entry.path);
+    
+    const trimmedPath = trim(entry.path)
+    var extractPath = path.join(opts.path, trimmedPath);
     if (extractPath.indexOf(opts.path) != 0) {
       return cb();
     }
     
-    if (!filter(entry.path)) {
-      console.log('ignoring', entry.path)
+    if (!filter(trimmedPath)) {
+      console.log('ignoring', trimmedPath)
       delete file_modes[extractPath]
       entry.autodrain()
       cb()
     } else {
       const writer = opts.getWriter ? opts.getWriter({path: extractPath}) :  Writer({ path: extractPath });
-      console.log('extracting', entry.path)
+      console.log('extracting', trimmedPath)
       entry.pipe(writer)
         .on('error', cb)
         .on('close', ()=>{
@@ -67,7 +74,7 @@ function Extract (opts) {
   })
   .on('centraldir_entry', cde=>{
     setImmediate(()=>{
-      const p = path.join(opts.path, cde.fileName)
+      const p = path.join(opts.path, trim(cde.fileName))
       const mode = parseExtAttrs(cde.externalFileAttributes)
       fs.chmod(p, mode, err=>{
         if (!err) {

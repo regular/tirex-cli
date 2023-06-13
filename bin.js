@@ -25,7 +25,7 @@ if (conf._.length == 3) {
 function install(uid, dest, cb) {
   const filter = conf.filter_path ? pm(conf.filter_path) : ()=>true
   doRemote((url, cb)=>{
-    download(url, dest, {filter}, cb)
+    download(url, dest, {filter, trim: conf.trim}, cb)
   }, uid, cb)
 }
 
@@ -100,12 +100,13 @@ function usage() {
 
     UID may be a glob expression
 
-  tirex install UID DIR [--filter_path PATTERN1 [ --filter_path PATTERN2 ...]]
+  tirex install UID DIR [--trin N] [--filter_path PATTERN1 [ --filter_path PATTERN2 ...]]
 
     Install the specified package to directory DIR
     
     UID may be a glob expression
     PATTERN1.. are glob patterns. If given, only file paths matching one of the patterns will be extracted.
+    N if given, remove the first N path segments before filtering and extracting
   `)
 }
 

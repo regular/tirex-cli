@@ -64,7 +64,7 @@ function download(url, dest, opts, cb) {
     if (res.statusCode >= 400) {
       return cb(new Error(`HTTP status ${res.statusCode}`))
     }
-    res.pipe(Extract({path: dest, filter: opts.filter}))
+    res.pipe(Extract({path: dest, filter: opts.filter, trim: opts.trim}))
     /*
     res.pipe(unzip.Parse())
     .on('entry', entry=>{
