@@ -1,12 +1,11 @@
-tisl
+tirex-cli
 ====
-tisl is a cli tool for version management of Texas Intrument's SimpleLink(tm) SDK. It works much like nvm works for Node version management.
+a cli tool for discovering and installing packages from Texas Intrument's Resource Explorer website
 
 Features
 --
 
-- list versions availbe remotely and locally
-- install a remote version
-- switch between installed verions
+- list packages availbe
+- streaming download and unzip with filtering
 
 
