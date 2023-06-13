@@ -1,14 +1,10 @@
 const os = require('os')
 const pull = require('pull-stream')
-//const paramap = require('pull-paramap')
 const human = require('human-size')
-//const git = require('./git')
 const {getPackages, download, entries} = require('.')
 const pm = require('picomatch')
 const conf = require('rc')('tirex')
 
-//const repo='/home/regular/dev/flytta/sdks/tigitrepo'
-//const {listVersions} = git(repo)
 if (conf._.length == 3) {
   const [cmd, uid, dest] = conf._
   if (cmd == 'install' || cmd == 'i') {
@@ -26,8 +22,9 @@ if (conf._.length == 3) {
 } else usage()
 
 function install(uid, dest, cb) {
+  const filter = conf.filter_path ? pm(conf.filter_path) : ()=>true
   doRemote((url, cb)=>{
-    download(url, dest, {}, cb)
+    download(url, dest, {filter}, cb)
   }, uid, cb)
 }
 
@@ -102,11 +99,12 @@ function usage() {
 
     UID may be a glob expression
 
-  tirex install UID DIR
+  tirex install UID DIR [--filter_path PATTERN1 [ --filter_path PATTERN2 ...]]
 
     Install the specified package to directory DIR
     
     UID may be a glob expression
+    PATTERN1.. are glob patterns. If given, only file paths matching one of the patterns will be extracted.
   `)
 }
 
