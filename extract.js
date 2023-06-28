@@ -76,17 +76,19 @@ function Extract (opts) {
     setImmediate(()=>{
       const p = path.join(opts.path, trim(cde.fileName))
       const mode = parseExtAttrs(cde.externalFileAttributes)
-      fs.chmod(p, mode, err=>{
-        if (!err) {
-          console.log(
-            'chmod',
-            mode.toString(8),
-            cde.fileName
-          )
-          return
-        }
-        file_modes[p] = mode
-      })
+      if (mode) {
+        fs.chmod(p, mode, err=>{
+          if (!err) {
+            console.log(
+              'chmod',
+              mode.toString(8),
+              cde.fileName
+            )
+            return
+          }
+          file_modes[p] = mode
+        })
+      }
     })
   })
 
