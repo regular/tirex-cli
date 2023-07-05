@@ -85,7 +85,7 @@ function usage() {
   console.log(`
   tirex list
   tirex files UID
-  tirex download UID DEST
+  tirex install UID DIR [--trin N] [--filter_path PATTERN1 [ --filter_path PATTERN2 ...]]
     
   tirex list [--friendly] [--filter_uid PATTERN [ --filter_uid PATTERN ...]]
 
