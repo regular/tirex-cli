@@ -100,12 +100,13 @@ module.exports = function Extract (opts) {
   })
   .on('centraldir_entry', cde=>{
     setImmediate(()=>{
-      const p = path.join(opts.path, trim(cde.fileName))
+      const trimmedPath = trim(cde.fileName)
+      const p = path.join(opts.path, trimmedPath)
       if (extracted[p] !== undefined) {
         if (extracted[p] !== cde.crc32) {
           throw new Error(`CRC32 mismatch in ${p}!`)
         }
-      } else if (cde.crc32 !== 0) {
+      } else if (cde.crc32 !== 0 && filter(trimmedPath)) {
         toValidate[p] = cde.crc32
       }
       const mode = parseExtAttrs(cde.externalFileAttributes)
