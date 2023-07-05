@@ -31,7 +31,7 @@ module.exports = function downloadAndExtract(url, dest, opts, cb) {
         })
       })
       console.log('was extracted to',name)
-      if (!name.match(/^[a-zA-Z0-9_-\.]+$/)) {
+      if (!name.match(/^[a-zA-Z0-9_\-\.]+$/)) {
         throw new Error(`Unsafe name: ${name}`)
       }
       await new Promise( (resolve, reject) => {
