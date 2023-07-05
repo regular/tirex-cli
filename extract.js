@@ -1,6 +1,7 @@
-module.exports = Extract;
-
 const fs = require('fs')
+const {crc32} = require('crc')
+const once = require('once')
+
 var Parse = require('unzipper/lib/parse');
 var Writer = require('fstream').Writer;
 var path = require('path');
@@ -8,7 +9,7 @@ var stream = require('stream');
 var duplexer2 = require('duplexer2');
 var Promise = require('bluebird');
 
-function Extract (opts) {
+module.exports = function Extract (opts) {
   // make sure path is normalized before using it
   opts.path = path.resolve(path.normalize(opts.path));
   const filter = opts.filter || (()=>true)
@@ -22,9 +23,10 @@ function Extract (opts) {
 
   var parser = new Parse(opts);
 
-  var outStream = new stream.Writable({objectMode: true});
+  var outStream = new stream.Writable({objectMode: true})
   outStream._write = function(entry, encoding, cb) {
-    if (entry.type == 'Directory') return cb();
+    cb = once(cb)
+    if (entry.type == 'Directory') return cb()
 
     // to avoid zip slip (writing outside of the destination), we resolve
     // the target path, and make sure it's nested in the intended
@@ -33,7 +35,7 @@ function Extract (opts) {
     const trimmedPath = trim(entry.path)
     var extractPath = path.join(opts.path, trimmedPath);
     if (extractPath.indexOf(opts.path) != 0) {
-      return cb();
+      return cb()
     }
     
     if (!filter(trimmedPath)) {
@@ -44,9 +46,21 @@ function Extract (opts) {
     } else {
       const writer = opts.getWriter ? opts.getWriter({path: extractPath}) :  Writer({ path: extractPath });
       console.log('extracting', trimmedPath)
+      let checksum 
+      entry.on('data', data=>{
+        if (checksum == undefined) checksum = crc32(data)
+        else checksum = crc32(data, checksum)
+      })
       entry.pipe(writer)
         .on('error', cb)
         .on('close', ()=>{
+          if (!checksum) checksum = 0
+          if (checksum !== entry.vars.crc32) {
+            return cb(new Error(`CRC32 mismatch in ${trimmedPath}! CRC32 stored in zip is ${entry.vars.crc32}, calculated during extraction is: ${checksum}`))
+          } else {
+            console.log('CRC32 checksums match')
+          }
+
           const mode = file_modes[extractPath]
           if (mode) {
             fs.chmod(extractPath, mode, err=>{
@@ -64,7 +78,7 @@ function Extract (opts) {
           } else {
             cb()
           }
-        });
+        })
     }
   };
 
