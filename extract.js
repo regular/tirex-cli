@@ -20,6 +20,8 @@ module.exports = function Extract (opts) {
   }
 
   const file_modes = {}
+  const extracted = {}
+  const toValidate = {}
 
   var parser = new Parse(opts);
 
@@ -45,7 +47,7 @@ module.exports = function Extract (opts) {
       cb()
     } else {
       const writer = opts.getWriter ? opts.getWriter({path: extractPath}) :  Writer({ path: extractPath });
-      console.log('extracting', trimmedPath)
+      console.log('extracting', entry.type, trimmedPath)
       let checksum 
       entry.on('data', data=>{
         if (checksum == undefined) checksum = crc32(data)
@@ -55,12 +57,22 @@ module.exports = function Extract (opts) {
         .on('error', cb)
         .on('close', ()=>{
           if (!checksum) checksum = 0
-          if (checksum !== entry.vars.crc32) {
-            return cb(new Error(`CRC32 mismatch in ${trimmedPath}! CRC32 stored in zip is ${entry.vars.crc32}, calculated during extraction is: ${checksum}`))
-          } else {
-            console.log('CRC32 checksums match')
+          const cdeCRC = toValidate[extractPath]
+          if (cdeCRC !== undefined) {
+            if (checksum == cdeCRC) {
+              delete toValidate[extractPath]
+            } else {
+              return cb(new Error(`CRC32 mismatch in ${trimmedPath}! CRC32 stored Central Directory is ${cdeCRC}, calculated during extraction is: ${checksum}`))
+            }
           }
-
+          if (checksum !== entry.vars.crc32) {
+            if (entry.vars.crc32 !== 0) {
+              return cb(new Error(`CRC32 mismatch in ${trimmedPath}! CRC32 stored in local header is ${entry.vars.crc32}, calculated during extraction is: ${checksum}`))
+            }
+          } else {
+            console.log('CRC32 checksums match', checksum)
+          }
+          extracted[extractPath] = checksum
           const mode = file_modes[extractPath]
           if (mode) {
             fs.chmod(extractPath, mode, err=>{
@@ -89,19 +101,27 @@ module.exports = function Extract (opts) {
   .on('centraldir_entry', cde=>{
     setImmediate(()=>{
       const p = path.join(opts.path, trim(cde.fileName))
+      if (extracted[p] !== undefined) {
+        if (extracted[p] !== cde.crc32) {
+          throw new Error(`CRC32 mismatch in ${p}!`)
+        }
+      } else if (cde.crc32 !== 0) {
+        toValidate[p] = cde.crc32
+      }
       const mode = parseExtAttrs(cde.externalFileAttributes)
       if (mode) {
-        fs.chmod(p, mode, err=>{
-          if (!err) {
+        if (extracted[p] !== undefined) {
+          fs.chmod(p, mode, err=>{
             console.log(
               'chmod',
               mode.toString(8),
-              cde.fileName
+              cde.fileName,
+              err ? err.message : ''
             )
-            return
-          }
+          })
+        } else {
           file_modes[p] = mode
-        })
+        }
       }
     })
   })
@@ -109,6 +129,10 @@ module.exports = function Extract (opts) {
   parser
     .pipe(outStream)
     .on('finish',function() {
+      const unvalidated = Object.keys(toValidate)
+      if (unvalidated.length) {
+        throw Error('Some files could not be validated:' + unvalidated.join(' '))
+      }
       extract.emit('close');
     });
   
@@ -123,7 +147,8 @@ module.exports = function Extract (opts) {
 }
 
 function parseExtAttrs(a) {
-  a = (a & 0xffff0000) >> 16
-  const perms = (a & 0777)
-  return perms
+  //a = (a & 0xffff0000) >> 16
+  //const type = (a & 0170000)
+  //const perms = (a & 0777)
+  return (a >> 16) & 0170777
 }
