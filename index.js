@@ -12,9 +12,11 @@ const api_base = 'https://dev.ti.com/tirex/explore/api'
 const userAgent = 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/114.0'
 const accept = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
 
+const downloadUsingTools = require('./download-using-tools')
+
 module.exports = {
   entries,
-  download,
+  download: downloadUsingTools,
   getPackages
 }
 
